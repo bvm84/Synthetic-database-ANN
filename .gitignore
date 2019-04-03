@@ -1,3 +1,8 @@
+#Folders
+square_db/
+triangle_db/
+im_square_db/
+im_triangle_db/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

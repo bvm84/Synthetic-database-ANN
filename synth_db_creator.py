@@ -20,17 +20,29 @@ def create_square_array(amplitude, square_duration, full_duration, offset):
     return array
 
 
-def create_square_db(amplitude, square_duration, full_duration, quantity=10):
-    base_dir = PurePath(os.getcwd(), 'square_db')
-    if not os.path.exists(base_dir):
-        os.makedirs(base_dir)
+def create_square_monodb(amplitude, square_duration, full_duration, quantity, folder):
+    if not os.path.exists(folder):
+        os.makedirs(folder)
     n = int(full_duration / quantity)
     for i in range(quantity):
         offset = n * i
         array = create_square_array(amplitude, square_duration, full_duration, offset)
-        print(array)
-        filename = base_dir.joinpath(str(i)).with_suffix('.npy')
+        # print(array)
+        filename = folder.joinpath(str(i)).with_suffix('.npy')
         np.save(str(filename), array)
+
+
+def create_square_db(amp_max, square_duration, full_duration, quantity, folder):
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    n = int(full_duration / quantity)
+    for j in range(10, amp_max):
+        for i in range(quantity):
+            offset = n * i
+            array = create_square_array(j, square_duration, full_duration, offset)
+            # print(array)
+            filename = folder.joinpath((str(j) + '_' + str(i))).with_suffix('.npy')
+            np.save(str(filename), array)
 
 
 def create_triangle_array(amplitude, triangle_duration, full_duration, offset):
@@ -56,17 +68,29 @@ def create_triangle_array(amplitude, triangle_duration, full_duration, offset):
     return array
 
 
-def create_triangle_db(amplitude, triangle_duration, full_duration, quantity=10):
-    base_dir = PurePath(os.getcwd(), 'triangle_db')
-    if not os.path.exists(base_dir):
-        os.makedirs(base_dir)
+def create_triangle_monodb(amplitude, triangle_duration, full_duration, quantity, folder):
+    if not os.path.exists(folder):
+        os.makedirs(folder)
     n = int(full_duration / quantity)
     for i in range(quantity):
         offset = n * i
         array = create_triangle_array(amplitude, triangle_duration, full_duration, offset)
         # print(array)
-        filename = base_dir.joinpath(str(i)).with_suffix('.npy')
+        filename = folder.joinpath(str(i)).with_suffix('.npy')
         np.save(str(filename), array)
+
+
+def create_triangle_db(amp_max, triangle_duration, full_duration, quantity, folder):
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    for j in range(10, amp_max):
+        n = int(full_duration / quantity)
+        for i in range(quantity):
+            offset = n * i
+            array = create_triangle_array(j, triangle_duration, full_duration, offset)
+            # print(array)
+            filename = folder.joinpath((str(j) + '_' + str(i))).with_suffix('.npy')
+            np.save(str(filename), array)
 
 
 def convert_series_to_recurence_matrix(array):
@@ -132,12 +156,15 @@ def plot_recurence(recurence_matrix):
 
 
 if __name__ == "__main__":
-    # create_square_db(amplitude=1000, square_duration=100, full_duration=1002, quantity=100)
-    # create_triangle_db(amplitude=1000, triangle_duration=100, full_duration=1002, quantity=100)
+    square_db_folder = PurePath(os.getcwd(), 'square_db')
+    triangle_db_folder = PurePath(os.getcwd(), 'triangle_db')
+    square_im_db_folder = PurePath(os.getcwd(), 'im_square_db')
+    triangle_im_db_folder = PurePath(os.getcwd(), 'im_triangle_db')
+    create_square_db(amp_max=100, square_duration=100, full_duration=1002, quantity=100, folder=square_db_folder)
+    create_triangle_db(amp_max=100, triangle_duration=100, full_duration=1002, quantity=100, folder=triangle_db_folder)
+    create_image_db(square_db_folder, square_im_db_folder)
+    create_image_db(triangle_db_folder, triangle_im_db_folder)
     # i = 95
     # filename_to_show = PurePath(os.getcwd(), 'square_db')
     # filename_to_show = PurePath(os.getcwd(), 'triangle_db')
     # show_series(filename_to_show.joinpath(str(i)).with_suffix('.npy'))
-    source_folder = PurePath(os.getcwd(), 'triangle_db')
-    out_folder = PurePath(os.getcwd(), 'im_triangle_db_db')
-    create_image_db(source_folder, out_folder)
