@@ -144,7 +144,6 @@ def load_model(model, test_df):
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
 
 
-
 if __name__ == "__main__":
     square_series_folder = PurePath(os.getcwd(), 'square_db')
     tringle_series_folder = PurePath(os.getcwd(), 'triangle_db')
