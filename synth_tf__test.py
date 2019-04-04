@@ -11,6 +11,7 @@ from keras.models import Model
 from keras.callbacks import Callback
 from keras.preprocessing.image import array_to_img, img_to_array, load_img
 from keras import backend as K
+from arff2pandas import a2p
 
 
 class TerminateOnBaseline(Callback):
@@ -32,14 +33,53 @@ class TerminateOnBaseline(Callback):
 
 
 class CreateDf():
-    def __init__(self, folders):
-        for folder in folders:
-            for item in glob.iglob(str(folder) + '/*.npy'):
-                array_data = np.load(item)
-                indexes = ['feature' + str(x) for x in range(len(array_data))]
-                # print(indexes)
-                ser = Series(data=array_data, index=indexes)
-                self.df = self.df.append(ser, ignore_index=True)
+    def __init__(self):
+        self.df = DataFrame(dtype=object)
+
+    def create_df_from_folders(self, folders, anotations):
+        if len(anotations) == len(folders):
+            last_index_name = ''
+            for anot in anotations:
+                last_index_name = last_index_name + str(anot) + ','
+            last_index_name = 'label@{{{0}}}'.format(last_index_name[:-1])
+            print(last_index_name)
+            i = 0
+            for folder in folders:
+                j = 0
+                for item in glob.iglob(str(folder) + '/*.npy'):
+                    array_data = np.load(item)
+                    indexes = ['f' + str(x) + '@NUMERIC' for x in range(len(array_data))]
+                    # print(indexes)
+                    ser = Series(data=array_data, index=indexes)
+                    ser = ser.append(Series(data=anotations[i], index=[last_index_name]))
+                    # print(ser)
+                    self.df = self.df.append(ser, ignore_index=True)
+                    j += 1
+                    if j >= 100:
+                        break
+                i += 1
+            # print(indexes.append(last_index_name))
+            self.df = self.df.reindex(labels=indexes.append(last_index_name), axis='columns')
+            self.df = self.df.astype({last_index_name: 'str'})
+            print(type(self.df.loc[199][-1]))
+            print(self.df)
+            print('Df creation done')
+        else:
+            print('Anotations list len should be the same as folders list len')
+
+    def save_to_arff2(self, filename):
+        with open(str(filename), 'w') as f:
+            a2p.dump(self.df, f)
+
+    def load_from_arff2(self, filename):
+        with open(str(filename), 'r') as f:
+            self.df = a2p.load(f)
+
+    def get_df(self):
+        return self.df
+
+    def loaf_df(self, df):
+        self.df = df
 
 
 class SynthANN():
@@ -179,7 +219,12 @@ def load_model(model, test_df):
 if __name__ == "__main__":
     square_series_folder = PurePath(os.getcwd(), 'square_db')
     tringle_series_folder = PurePath(os.getcwd(), 'triangle_db')
-    df = CreateDf([square_series_folder, tringle_series_folder])
+    df_arff2_filename = PurePath(os.getcwd(), 'squre_triangle').with_suffix('.arff')
+    df = CreateDf()
+    df.create_df_from_folders([square_series_folder, tringle_series_folder], ['sq', 't'])
+    df.save_to_arff2(df_arff2_filename)
+    df.load_from_arff2(df_arff2_filename)
+    print(df.get_df())
     # SynthANN_o = SynthANN(square_series_folder, tringle_series_folder)
     # SynthANN_o.normalize_df()
     # train, test = train_test_split(df, test_size=0.2, shuffle=True)
