@@ -32,11 +32,11 @@ def create_square_monodb(amplitude, square_duration, full_duration, quantity, fo
         np.save(str(filename), array)
 
 
-def create_square_db(amp_max, square_duration, full_duration, quantity, folder):
+def create_square_db(amp_max, amp_min, step, square_duration, full_duration, quantity, folder):
     if not os.path.exists(folder):
         os.makedirs(folder)
     n = int(full_duration / quantity)
-    for j in range(10, amp_max):
+    for j in range(amp_min, amp_max, step):
         for i in range(quantity):
             offset = n * i
             array = create_square_array(j, square_duration, full_duration, offset)
@@ -80,10 +80,10 @@ def create_triangle_monodb(amplitude, triangle_duration, full_duration, quantity
         np.save(str(filename), array)
 
 
-def create_triangle_db(amp_max, triangle_duration, full_duration, quantity, folder):
+def create_triangle_db(amp_max, amp_min, step, triangle_duration, full_duration, quantity, folder):
     if not os.path.exists(folder):
         os.makedirs(folder)
-    for j in range(10, amp_max):
+    for j in range(amp_min, amp_max, step):
         n = int(full_duration / quantity)
         for i in range(quantity):
             offset = n * i
@@ -116,7 +116,7 @@ def save_recurence_image(recurence_matrix, image_name):
     DPI = 100
     fig_ws = plt.figure(figsize=(w, h), dpi=DPI, frameon=False)
     ax = fig_ws.add_axes([0, 0, 1, 1])
-    plt.imshow(recurence_matrix, cmap='gray')
+    plt.imshow(recurence_matrix, cmap='gray', vmin=0, vmax=255)
     # plt.axis('off')
     # ax.set_xlim([0, len(data)])
     # ax.set_ylim([0, 1])
@@ -124,7 +124,7 @@ def save_recurence_image(recurence_matrix, image_name):
     ax.margins(0, 0.01)
     ax.xaxis.set_major_locator(NullLocator())
     ax.yaxis.set_major_locator(NullLocator())
-    plt.savefig(image_name, bbox_inches='tight', pad_inches=0)
+    plt.savefig(image_name, bbox_inches='tight', pad_inches=0, format='png')
     plt.cla()
     plt.clf()
     plt.close('all')
@@ -160,10 +160,12 @@ if __name__ == "__main__":
     triangle_db_folder = PurePath(os.getcwd(), 'triangle_db')
     square_im_db_folder = PurePath(os.getcwd(), 'im_square_db')
     triangle_im_db_folder = PurePath(os.getcwd(), 'im_triangle_db')
-    create_square_db(amp_max=100, square_duration=100, full_duration=1002, quantity=100, folder=square_db_folder)
-    create_triangle_db(amp_max=100, triangle_duration=100, full_duration=1002, quantity=100, folder=triangle_db_folder)
-    create_image_db(square_db_folder, square_im_db_folder)
-    create_image_db(triangle_db_folder, triangle_im_db_folder)
+    create_square_db(amp_min=1, amp_max=255, step=1,
+                     square_duration=100, full_duration=1002, quantity=100, folder=square_db_folder)
+    create_triangle_db(amp_min=1, amp_max=255, step=1,
+                       triangle_duration=100, full_duration=1002, quantity=100, folder=triangle_db_folder)
+    # create_image_db(square_db_folder, square_im_db_folder)
+    # create_image_db(triangle_db_folder, triangle_im_db_folder)
     # i = 95
     # filename_to_show = PurePath(os.getcwd(), 'square_db')
     # filename_to_show = PurePath(os.getcwd(), 'triangle_db')
