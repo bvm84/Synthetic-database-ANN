@@ -9,6 +9,7 @@ from keras.layers import Dense, Input
 from keras.models import Model
 from keras.callbacks import Callback
 from arff2pandas import a2p
+import tensorflow as tf
 
 
 class TerminateOnBaseline(Callback):
@@ -97,7 +98,7 @@ class SynthANN():
         self.df.drop(labels=indexes_to_drop, axis='index', inplace=True)
         # print(self.df)
 
-    def split_data(self, size=0.2, shuffle_bool=False):
+    def split_data(self, size=0.2, shuffle_bool=True):
         self.train_df, self.test_df = train_test_split(self.df, test_size=size, shuffle=shuffle_bool)
 
     def normalize_df(self):
@@ -109,11 +110,18 @@ class SynthANN():
         self.ndf_test_x[self.ndf_test_x.columns] = (
             self.xnscale_object.transform(self.ndf_test_x[self.ndf_test_x.columns])
         )
-        arr = self.train_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)[:, 0]
-        print(arr)
-        narr = self.ynscale_object.fit_transform(arr)
-        self.ndf_train_y = Series(narr)
-        print(self.ndf_train_y)
+        self.ndf_train_y = Series(self.ynscale_object.fit_transform(
+            self.train_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)).flatten())
+        self.ndf_test_y = Series(self.ynscale_object.transform(
+            self.test_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)).flatten())
+        # arr = self.train_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)[:, 0]
+        # arr = self.train_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)
+        # narr = self.ynscale_object.fit_transform(rarr)
+        # snarr = narr[:, 0]
+        # print(snarr)
+        # print(narr.flatten())
+        # self.ndf_train_y = Series(narr.flatten())
+        # print(self.ndf_train_y)
         '''
         self.ndf_train_y = Series(self.ynscale_object.fit_transform(
             self.train_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)))
@@ -137,45 +145,55 @@ class SynthANN():
         history = model.fit(train_x, train_y, epochs=epochs_to_train, callbacks=[overfitCallback])
         return history, model
 
-    @staticmethod
-    def predict_model(model, array):
-        predicted = model.predict(np.expand_dims(array, axis=0))
-        return np.round(np.squeeze(predicted))
-
     def get_model(self):
         x = self.ndf_train_x.values.astype(dtype='float64')
         y = self.ndf_train_y.values.astype(dtype='float64')
         # print(len(x))
         # print(len(y))
-        _, model = self.train_model(x, y, 10)
+        _, model = self.train_model(x, y, 20)
         return model
 
     def test_model(self, model):
         # print(normalized_test_df)
-        test_y = self.ndf_test_x.values
-        test_x = self.ndf_test_y.values
+        test_x = self.ndf_test_x.values.astype(dtype='float64')
+        test_y = self.ndf_test_y.values.astype(dtype='float64')
         scores = model.evaluate(x=test_x, y=test_y, verbose=1)
         return scores
 
-    def save_model(model, test_df):
-        x = np.asarray(test_df['x'].tolist())
-        y = np.asarray(test_df['y'].tolist())
-        scores = model.evaluate(x, y, verbose=1)
-        print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+    def save_model(model, model_name):
+        model.save(
+            model_name,
+            overwrite=True,
+            include_optimizer=True
+        )
 
-    def load_model(model, test_df):
-        x = np.asarray(test_df['x'].tolist())
-        y = np.asarray(test_df['y'].tolist())
-        scores = model.evaluate(x, y, verbose=1)
-        print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+    def load_model(model_name):
+        model = tf.keras.models.load_model(model_name)
+        return model
+
+    @staticmethod
+    def predict_model(model, array):
+        predicted = model.predict(np.expand_dims(array, axis=0))
+        return np.round(np.squeeze(predicted))
 
     def test_model_loop(self, model):
         predicted_list = []
-        for i in range(self.test_df_xs.shape[0]):
-            # print(self.test_df_xs.loc[i].values)
-            result = self.predict_model(model, self.test_df_xs.loc[i].values)
+        anoted_list = []
+        '''
+        for index, ser in self.ndf_test_x.iterrows():
+            # print(type(ser))
+            result = self.predict_model(model, ser.values)
             predicted_list.append(result)
-        d = {'predicted': predicted_list, 'anoted': self.test_df_ys.values}
+        '''
+        for index, ser in self.test_df.iterrows():
+            anoted_list.append(ser.values[-1])
+            # print(ser.values.flatten())
+            # arr = ser.values.flatten()[:len(ser.values) - 1]
+            narr = self.ynscale_object.transform(ser.values[:len(ser.values) - 1].reshape(-1, 1)).flatten()
+            # print(narr)
+            result = self.predict_model(model, narr)
+            predicted_list.append(result)
+        d = {'predicted': predicted_list, 'anoted': anoted_list}
         result_df = DataFrame(data=d)
         result_df.to_excel("output.xlsx")
         print(result_df)
@@ -191,7 +209,7 @@ if __name__ == "__main__":
     dfo.load_from_arff2(df_arff2_filename)
     dfd = dfo.get_df()
     anno = SynthANN(dfd)
-    anno.truncate_data(rows_to_store=200)
+    # anno.truncate_data(rows_to_store=200)
     # print(anno.df)
     anno.split_data()
     anno.normalize_df()
@@ -199,4 +217,5 @@ if __name__ == "__main__":
     # print(anno.ndf_train_y)
     model = anno.get_model()
     scores = anno.test_model(model)
+    anno.test_model_loop(model)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
