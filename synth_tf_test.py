@@ -50,14 +50,7 @@ class CreateDf():
             for anot in anotations:
                 last_column_name = last_column_name + str(anot) + ','
             last_column_name = 'label@{{{0}}}'.format(last_column_name[:-1])
-            # print(last_column_name)
             self.df.insert(loc=len(self.df.columns), column=last_column_name, value=anotation_list)
-            # print(self.df)
-            # self.df = self.df.reindex(labels=indexes.append(last_index_name), axis='columns')
-            # self.df = self.df.astype({last_index_name: 'str'})
-            # print(type(self.df.loc[199][-1]))
-            # print(self.df)
-            # print('Df creation done')
         else:
             print('Anotations list len should be the same as folders list len')
 
@@ -114,28 +107,13 @@ class SynthANN():
             self.train_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)).flatten())
         self.ndf_test_y = Series(self.ynscale_object.transform(
             self.test_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)).flatten())
-        # arr = self.train_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)[:, 0]
-        # arr = self.train_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)
-        # narr = self.ynscale_object.fit_transform(rarr)
-        # snarr = narr[:, 0]
-        # print(snarr)
-        # print(narr.flatten())
-        # self.ndf_train_y = Series(narr.flatten())
-        # print(self.ndf_train_y)
-        '''
-        self.ndf_train_y = Series(self.ynscale_object.fit_transform(
-            self.train_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1)))
-        #print(len(self.ndf_train_y))
-        self.ndf_test_y = self.ynscale_object.transform(
-            self.test_df.copy(deep=True).iloc[:, -1].values.reshape(-1, 1))
-        '''
+
     @staticmethod
     def train_model(train_x, train_y, epochs_to_train):
         overfitCallback = TerminateOnBaseline(monitor='acc', baseline=1)
         train_samle_length = len(train_x[0])
         model_input = Input(shape=(train_samle_length,))
         model_dense_1 = Dense(96, activation='relu')(model_input)
-        # model_dropout_1 = Dropout(rate=0.5)(model_dense_1)
         model_dense_2 = Dense(48, activation='relu')(model_dense_1)
         predict_out = Dense((1), activation='hard_sigmoid')(model_dense_2)
         model = Model(inputs=model_input, outputs=predict_out)
@@ -148,13 +126,10 @@ class SynthANN():
     def get_model(self):
         x = self.ndf_train_x.values.astype(dtype='float64')
         y = self.ndf_train_y.values.astype(dtype='float64')
-        # print(len(x))
-        # print(len(y))
         _, model = self.train_model(x, y, 20)
         return model
 
     def test_model(self, model):
-        # print(normalized_test_df)
         test_x = self.ndf_test_x.values.astype(dtype='float64')
         test_y = self.ndf_test_y.values.astype(dtype='float64')
         scores = model.evaluate(x=test_x, y=test_y, verbose=1)
@@ -179,18 +154,9 @@ class SynthANN():
     def test_model_loop(self, model):
         predicted_list = []
         anoted_list = []
-        '''
-        for index, ser in self.ndf_test_x.iterrows():
-            # print(type(ser))
-            result = self.predict_model(model, ser.values)
-            predicted_list.append(result)
-        '''
         for index, ser in self.test_df.iterrows():
             anoted_list.append(ser.values[-1])
-            # print(ser.values.flatten())
-            # arr = ser.values.flatten()[:len(ser.values) - 1]
             narr = self.ynscale_object.transform(ser.values[:len(ser.values) - 1].reshape(-1, 1)).flatten()
-            # print(narr)
             result = self.predict_model(model, narr)
             predicted_list.append(result)
         d = {'predicted': predicted_list, 'anoted': anoted_list}
@@ -204,7 +170,6 @@ if __name__ == "__main__":
     tringle_series_folder = PurePath(os.getcwd(), 'triangle_db')
     df_arff2_filename = PurePath(os.getcwd(), 'squre_triangle').with_suffix('.arff')
     dfo = CreateDf()
-    # df.create_df_from_folders([square_series_folder, tringle_series_folder], ['0', '1'])
     # df.save_to_arff2(df_arff2_filename)
     dfo.load_from_arff2(df_arff2_filename)
     dfd = dfo.get_df()
@@ -213,8 +178,6 @@ if __name__ == "__main__":
     # print(anno.df)
     anno.split_data()
     anno.normalize_df()
-    # print(anno.ndf_train_x)
-    # print(anno.ndf_train_y)
     model = anno.get_model()
     scores = anno.test_model(model)
     anno.test_model_loop(model)
