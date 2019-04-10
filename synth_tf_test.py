@@ -126,7 +126,7 @@ class SynthANN():
     def get_model(self):
         x = self.ndf_train_x.values.astype(dtype='float64')
         y = self.ndf_train_y.values.astype(dtype='float64')
-        _, model = self.train_model(x, y, 20)
+        _, model = self.train_model(x, y, 1)
         return model
 
     def test_model(self, model):
@@ -156,7 +156,8 @@ class SynthANN():
         anoted_list = []
         for index, ser in self.test_df.iterrows():
             anoted_list.append(ser.values[-1])
-            narr = self.ynscale_object.transform(ser.values[:len(ser.values) - 1].reshape(-1, 1)).flatten()
+            print(ser.values[:len(ser.values) - 1])
+            narr = self.xnscale_object.transform(np.expand_dims(ser.values[:len(ser.values) - 1], axis=0)).flatten()
             result = self.predict_model(model, narr)
             predicted_list.append(result)
         d = {'predicted': predicted_list, 'anoted': anoted_list}
